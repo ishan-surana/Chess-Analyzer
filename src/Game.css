@@ -1,0 +1,58 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("./assets/GameIMG.jpeg") no-repeat center center fixed;
+    background-size: cover;
+    opacity: 0.3;
+}
+
+.game-navbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0; 
+    width: 100vw; 
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-nav {
+    display: flex;
+    justify-content: space-around; 
+    align-items: center;
+    width: 100%;
+    max-width: 2200px; 
+    padding: 0 20px; 
+}
+
+
+.nav-button {
+    background-color: rgb(134, 174, 161);
+    color: white !important;
+    font-size: 20px;
+    padding: 15px 35px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    flex: 0 0 auto; 
+    margin: 0 10px; 
+}
+
+.nav-button:hover {
+    background-color: #12398e;
+}

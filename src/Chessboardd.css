@@ -1,0 +1,72 @@
+.container {
+    display: flex;
+    align-items: flex-start;
+    padding-left: 50px;
+  }
+  
+  .chessboard-container {
+    flex-shrink: 0;
+  }
+  
+  .chessboard {
+    display: grid;
+    grid-template-columns: repeat(8, 80px);
+    grid-template-rows: repeat(8, 80px);
+    border: 3px solid black;
+    width: fit-content;
+  }
+  
+  .square {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    border: 1px solid #333;
+  }
+  
+  .piece {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .rank {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 14px;
+    color: black;
+    font-weight: bold;
+  }
+  
+  .file {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 14px;
+    color: black;
+    font-weight: bold;
+  }
+  
+  .sidebar {
+    margin-left: 30px;
+    max-width: 200px;
+    text-align: center;
+  }
+  
+  .move-log {
+    border: 1px solid black;
+    padding: 10px;
+    height: 200px;
+    overflow-y: auto;
+    background: #f9f9f9;
+  }
+  
+  button {
+    width: 100%;
+    margin-top: 10px;
+  }
+  

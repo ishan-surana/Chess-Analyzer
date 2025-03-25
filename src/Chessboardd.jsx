@@ -1,0 +1,131 @@
+import { useState } from "react";
+import { Button, Alert, Input } from "reactstrap";
+import "./Chessboardd.css"; 
+
+import w_pawn from "./assets/w_pawn.png";
+import w_rook from "./assets/w_rook.png";
+import w_knight from "./assets/w_knight.png";
+import w_bishop from "./assets/w_bishop.png";
+import w_queen from "./assets/w_queen.png";
+import w_king from "./assets/w_king.png";
+import b_pawn from "./assets/b_pawn.png";
+import b_rook from "./assets/b_rook.png";
+import b_knight from "./assets/b_knight.png";
+import b_bishop from "./assets/b_bishop.png";
+import b_queen from "./assets/b_queen.png";
+import b_king from "./assets/b_king.png";
+
+// Chess piece mapping
+const pieceMap = {
+  "P": w_pawn, "R": w_rook, "N": w_knight, "B": w_bishop, "Q": w_queen, "K": w_king,
+  "p": b_pawn, "r": b_rook, "n": b_knight, "b": b_bishop, "q": b_queen, "k": b_king
+};
+
+// Initial board setup
+const initialBoard = [
+  ["r", "n", "b", "q", "k", "b", "n", "r"],
+  ["p", "p", "p", "p", "p", "p", "p", "p"],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", ""],
+  ["P", "P", "P", "P", "P", "P", "P", "P"],
+  ["R", "N", "B", "Q", "K", "B", "N", "R"],
+];
+
+const ChessBoardd = () => {
+  const [board, setBoard] = useState(initialBoard);
+  const [from, setFrom] = useState(null);
+  const [turn, setTurn] = useState("white");
+  const [moveLog, setMoveLog] = useState([]);
+  const [resigned, setResigned] = useState(false);
+  const [moveText, setMoveText] = useState("");
+
+  const handleClick = (row, col) => {
+    const piece = board[row][col];
+
+    if (!from) {
+      if ((turn === "white" && piece.match(/[PRNBQK]/)) ||
+          (turn === "black" && piece.match(/[prnbqk]/))) {
+        setFrom({ row, col });
+      }
+    } else {
+      let newBoard = board.map((r) => [...r]);
+      newBoard[row][col] = board[from.row][from.col];
+      newBoard[from.row][from.col] = "";
+      setBoard(newBoard);
+
+ 
+      const moveNotation = `${"abcdefgh"[from.col]}${8 - from.row} → ${"abcdefgh"[col]}${8 - row}`;
+      setMoveLog([...moveLog, moveNotation]);
+
+      setTurn(turn === "white" ? "black" : "white");
+      setFrom(null);
+    }
+  };
+
+  const handleTakeback = () => {
+    if (moveLog.length > 0) {
+      setMoveLog(moveLog.slice(0, -1)); 
+    }
+  };
+
+  const handleResign = () => {
+    setResigned(true);
+    setMoveText("Move 4");
+  };
+
+  const handleWorstMove = () => {
+    if (!resigned) {
+      alert("Game in progress");
+    }
+  };
+
+  return (
+    <div className="container">
+      <div className="chessboard-container">
+        <div className="chessboard">
+          {board.map((row, rowIndex) =>
+            row.map((cell, colIndex) => {
+              const isDark = (rowIndex + colIndex) % 2 === 1;
+              const file = "abcdefgh"[colIndex]; 
+              const rank = 8 - rowIndex; 
+
+              return (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  className="square"
+                  onClick={() => handleClick(rowIndex, colIndex)}
+                  style={{ backgroundColor: isDark ? "#769656" : "#eeeed2" }}
+                >
+ 
+                  {colIndex === 0 && <span className="rank">{rank}</span>}
+                  {rowIndex === 7 && <span className="file">{file}</span>}
+
+
+                  {cell && <img src={pieceMap[cell]} alt={cell} className="piece" />}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <div className="sidebar">
+        <h3>Move Log</h3>
+        <div className="move-log">
+          {moveLog.map((move, index) => (
+            <p key={index}>{index + 1}. {move}</p>
+          ))}
+        </div>
+        <Button color="danger" onClick={handleResign}>Resign</Button>
+        <Button color="warning" onClick={handleWorstMove} disabled={!resigned}>
+          Show the worst move
+        </Button>
+        <Input type="text" value={moveText} readOnly />
+      </div>
+    </div>
+  );
+};
+
+export default ChessBoardd;
