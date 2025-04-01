@@ -41,28 +41,113 @@ const ChessBoardd = () => {
   const [resigned, setResigned] = useState(false);
   const [moveText, setMoveText] = useState("");
 
+  const validatePawnMove = (from, to, board, piece) => {
+    const direction = piece === "P" ? -1 : 1;
+    const startRow = piece === "P" ? 6 : 1;
+  
+    if (to.row === from.row + direction && to.col === from.col && board[to.row][to.col] === "") {
+      return true;
+    }
+  
+    if (from.row === startRow && to.row === from.row + 2 * direction && to.col === from.col && board[to.row][to.col] === "") {
+      return true;
+    }
+  
+    if (to.row === from.row + direction && Math.abs(to.col - from.col) === 1 && board[to.row][to.col] !== "") {
+      return true;
+    }
+  
+    return false;
+  };
+
+  const validateKnightMove = (from, to) => {
+    const dx = Math.abs(to.col - from.col);
+    const dy = Math.abs(to.row - from.row);
+    return (dx === 2 && dy === 1) || (dx === 1 && dy === 2);
+  };
+
+  const validateBishopMove = (from, to, board) => {
+    if (Math.abs(to.col - from.col) !== Math.abs(to.row - from.row)) return false;
+    return isPathClear(from, to, board);
+  };
+
+  const validateRookMove = (from, to, board) => {
+    if (from.row !== to.row && from.col !== to.col) return false;
+    return isPathClear(from, to, board);
+  };
+
+  const validateQueenMove = (from, to, board) => {
+    return validateBishopMove(from, to, board) || validateRookMove(from, to, board);
+  };
+  const validateKingMove = (from, to) => {
+    return Math.abs(to.row - from.row) <= 1 && Math.abs(to.col - from.col) <= 1;
+  };
+  const isPathClear = (from, to, board) => {
+    let rowStep = to.row > from.row ? 1 : to.row < from.row ? -1 : 0;
+    let colStep = to.col > from.col ? 1 : to.col < from.col ? -1 : 0;
+  
+    let row = from.row + rowStep;
+    let col = from.col + colStep;
+  
+    while (row !== to.row || col !== to.col) {
+      if (board[row][col] !== "") return false;
+      row += rowStep;
+      col += colStep;
+    }
+    return true;
+  };
+      
+  const isValidMove = (from, to, board) => {
+    const { row: fromRow, col: fromCol } = from;
+    const { row: toRow, col: toCol } = to;
+    const piece = board[fromRow][fromCol];
+    const target = board[toRow][toCol];
+  
+    if ((piece.match(/[PRNBQK]/) && target.match(/[PRNBQK]/)) || 
+        (piece.match(/[prnbqk]/) && target.match(/[prnbqk]/))) {
+      return false;
+    }
+  
+    switch (piece.toLowerCase()) {
+      case "p": return validatePawnMove(from, to, board, piece);
+      case "n": return validateKnightMove(from, to);
+      case "b": return validateBishopMove(from, to, board);
+      case "r": return validateRookMove(from, to, board);
+      case "q": return validateQueenMove(from, to, board);
+      case "k": return validateKingMove(from, to);
+      default: return false;
+    }
+  };
+
+  
   const handleClick = (row, col) => {
     const piece = board[row][col];
-
+  
     if (!from) {
-      if ((turn === "white" && piece.match(/[PRNBQK]/)) ||
+      if ((turn === "white" && piece.match(/[PRNBQK]/)) || 
           (turn === "black" && piece.match(/[prnbqk]/))) {
         setFrom({ row, col });
       }
     } else {
-      let newBoard = board.map((r) => [...r]);
-      newBoard[row][col] = board[from.row][from.col];
-      newBoard[from.row][from.col] = "";
-      setBoard(newBoard);
+      const to = { row, col };
+  
+      if (isValidMove(from, to, board)) {
+        let newBoard = board.map((r) => [...r]);
+        newBoard[row][col] = board[from.row][from.col];
+        newBoard[from.row][from.col] = "";
+        setBoard(newBoard);
+        console.log("Board after move:");
+        console.table(newBoard);
 
- 
-      const moveNotation = `${"abcdefgh"[from.col]}${8 - from.row} → ${"abcdefgh"[col]}${8 - row}`;
-      setMoveLog([...moveLog, moveNotation]);
-
-      setTurn(turn === "white" ? "black" : "white");
+        const moveNotation = `${"abcdefgh"[from.col]}${8 - from.row} → ${"abcdefgh"[col]}${8 - row}`;
+        setMoveLog([...moveLog, moveNotation]);
+        console.log("Move History:", [...moveLog, moveNotation]);
+        setTurn(turn === "white" ? "black" : "white");
+      }
       setFrom(null);
     }
   };
+  
 
   const handleTakeback = () => {
     if (moveLog.length > 0) {

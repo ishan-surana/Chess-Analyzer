@@ -52,9 +52,10 @@
   }
   
   .sidebar {
-    margin-left: 30px;
+    margin-left: 300px;
     max-width: 200px;
     text-align: center;
+    width: 100%;
   }
   
   .move-log {
