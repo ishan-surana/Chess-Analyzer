@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const userId = "220911270";
+  const userId = localStorage.getItem("userId") || "";
 
   return (
     <div className="landing-container">
@@ -13,7 +13,7 @@ const LandingPage = () => {
       <Navbar className="navbar">
         <Nav className="nav-links">
           <NavItem>
-            <Button className="nav-button" onClick={() => navigate("/")}>Signout</Button>
+            <Button className="nav-button" onClick={() => { localStorage.removeItem("userId"); navigate("/"); }}>Signout</Button>
           </NavItem>
           <NavItem>
             <Button className="nav-button" onClick={() => navigate("/game")}>Game</Button>

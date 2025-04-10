@@ -24,13 +24,13 @@ const Game = () => {
       <Navbar className="game-navbar">
         <Nav className="game-nav">
           <NavItem>
-            <NavLink className="nav-button" onClick={() => navigate("/Chessboardd")}>Start Match</NavLink>
+            <NavLink className="nav-button" onClick={() => navigate("/play")}>Start Match</NavLink>
           </NavItem>
           <NavItem>
-            <NavLink className="nav-button" onClick={() => navigate("/Chessboardd")}>Join Match</NavLink>
+            <NavLink className="nav-button" onClick={() => navigate("/play")}>Join Match</NavLink>
           </NavItem>
           <NavItem>
-            <NavLink className="nav-button" onClick={() => navigate("/Chessboardd")}>Watch Match</NavLink>
+            <NavLink className="nav-button" onClick={() => navigate("/play")}>Watch Match</NavLink>
           </NavItem>
         </Nav>
       </Navbar>
