@@ -13,7 +13,7 @@ const LandingPage = () => {
       <Navbar className="navbar">
         <Nav className="nav-links">
           <NavItem>
-            <Button className="nav-button" onClick={() => { localStorage.removeItem("userId"); navigate("/"); }}>Signout</Button>
+            <Button className="nav-button" onClick={() => { localStorage.clear(); navigate("/"); }}>Signout</Button>
           </NavItem>
           <NavItem>
             <Button className="nav-button" onClick={() => navigate("/game")}>Game</Button>

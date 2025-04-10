@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { Button, Alert, Input } from "reactstrap";
-import "./Chessboard.css"; 
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Button, Input } from "reactstrap";
+import { io } from "socket.io-client";
+import "./Chessboard.css";
 
 import w_pawn from "./assets/w_pawn.png";
 import w_rook from "./assets/w_rook.png";
@@ -15,14 +17,12 @@ import b_bishop from "./assets/b_bishop.png";
 import b_queen from "./assets/b_queen.png";
 import b_king from "./assets/b_king.png";
 
-// Chess piece mapping
 const pieceMap = {
-  "P": w_pawn, "R": w_rook, "N": w_knight, "B": w_bishop, "Q": w_queen, "K": w_king,
-  "p": b_pawn, "r": b_rook, "n": b_knight, "b": b_bishop, "q": b_queen, "k": b_king
+  P: w_pawn, R: w_rook, N: w_knight, B: w_bishop, Q: w_queen, K: w_king,
+  p: b_pawn, r: b_rook, n: b_knight, b: b_bishop, q: b_queen, k: b_king,
 };
 
-// Initial board setup
-const initialBoard = [
+const defaultBoard = [
   ["r", "n", "b", "q", "k", "b", "n", "r"],
   ["p", "p", "p", "p", "p", "p", "p", "p"],
   ["", "", "", "", "", "", "", ""],
@@ -33,62 +33,86 @@ const initialBoard = [
   ["R", "N", "B", "Q", "K", "B", "N", "R"],
 ];
 
+const socket = io("http://localhost:5000");
+
+const getSavedGame = (roomId) => {
+  const data = localStorage.getItem(`chess-${roomId}`);
+  return data ? JSON.parse(data) : null;
+};
+
+const saveGame = (roomId, board, turn, log) => {
+  localStorage.setItem(`chess-${roomId}`, JSON.stringify({ board, turn, log }));
+};
+
 const ChessBoard = () => {
-  const [board, setBoard] = useState(initialBoard);
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomId");
+  const role = searchParams.get("role") || "player";
+  const color = searchParams.get("color") || "white";
+
+  const [board, setBoard] = useState(defaultBoard);
   const [from, setFrom] = useState(null);
   const [turn, setTurn] = useState("white");
   const [moveLog, setMoveLog] = useState([]);
   const [resigned, setResigned] = useState(false);
   const [moveText, setMoveText] = useState("");
 
-  const validatePawnMove = (from, to, board, piece) => {
-    const direction = piece === "P" ? -1 : 1;
-    const startRow = piece === "P" ? 6 : 1;
-  
-    if (to.row === from.row + direction && to.col === from.col && board[to.row][to.col] === "") {
-      return true;
+  useEffect(() => {
+    const localGame = getSavedGame(roomId);
+    if (localGame) {
+      setBoard(localGame.board);
+      setTurn(localGame.turn);
+      setMoveLog(localGame.log);
     }
-  
-    if (from.row === startRow && to.row === from.row + 2 * direction && to.col === from.col && board[to.row][to.col] === "") {
-      return true;
+
+    socket.emit("join-game", roomId);
+
+    socket.on("opponent-move", ({ from, to, piece, fullBoard, log, turn, senderId }) => {
+      if (senderId === socket.id) return;
+      if(!fullBoard) return;
+      applyMove(from, to, true, piece, fullBoard, log, turn);
+    });
+
+    socket.on("sync-request", ({ requesterId }) => {
+      socket.emit("send-sync", {
+        roomId,
+        toSocketId: requesterId,
+        fullBoard: board,
+        log: moveLog,
+        turn
+      });
+    });
+
+    socket.on("sync-board", ({ fullBoard, log, turn }) => {
+      setBoard(fullBoard);
+      setMoveLog(log);
+      setTurn(turn);
+      saveGame(roomId, fullBoard, turn, log);
+    });
+
+    socket.on("opponent-resigned", (resignerColor) => {
+      setResigned(true);
+      setMoveText(`${resignerColor} resigned. ${resignerColor === "white" ? "Black" : "White"} wins!`);
+      setMoveLog((prev) => [...prev, `${resignerColor} resigned`]);
+    });
+
+    if (!localGame && role === "watcher") {
+      socket.emit("request-board", roomId);
     }
-  
-    if (to.row === from.row + direction && Math.abs(to.col - from.col) === 1 && board[to.row][to.col] !== "") {
-      return true;
-    }
-  
-    return false;
-  };
 
-  const validateKnightMove = (from, to) => {
-    const dx = Math.abs(to.col - from.col);
-    const dy = Math.abs(to.row - from.row);
-    return (dx === 2 && dy === 1) || (dx === 1 && dy === 2);
-  };
+    return () => {
+      socket.off("opponent-move");
+      socket.off("sync-request");
+      socket.off("sync-board");
+      socket.off("opponent-resigned");
+    };
+  }, [roomId, role]);
 
-  const validateBishopMove = (from, to, board) => {
-    if (Math.abs(to.col - from.col) !== Math.abs(to.row - from.row)) return false;
-    return isPathClear(from, to, board);
-  };
-
-  const validateRookMove = (from, to, board) => {
-    if (from.row !== to.row && from.col !== to.col) return false;
-    return isPathClear(from, to, board);
-  };
-
-  const validateQueenMove = (from, to, board) => {
-    return validateBishopMove(from, to, board) || validateRookMove(from, to, board);
-  };
-  const validateKingMove = (from, to) => {
-    return Math.abs(to.row - from.row) <= 1 && Math.abs(to.col - from.col) <= 1;
-  };
-  const isPathClear = (from, to, board) => {
+  const isPathClear = (from, to) => {
     let rowStep = to.row > from.row ? 1 : to.row < from.row ? -1 : 0;
     let colStep = to.col > from.col ? 1 : to.col < from.col ? -1 : 0;
-  
     let row = from.row + rowStep;
     let col = from.col + colStep;
-  
     while (row !== to.row || col !== to.col) {
       if (board[row][col] !== "") return false;
       row += rowStep;
@@ -96,73 +120,80 @@ const ChessBoard = () => {
     }
     return true;
   };
-      
-  const isValidMove = (from, to, board) => {
-    const { row: fromRow, col: fromCol } = from;
-    const { row: toRow, col: toCol } = to;
-    const piece = board[fromRow][fromCol];
-    const target = board[toRow][toCol];
-  
-    if ((piece.match(/[PRNBQK]/) && target.match(/[PRNBQK]/)) || 
-        (piece.match(/[prnbqk]/) && target.match(/[prnbqk]/))) {
-      return false;
-    }
-  
+
+  const validatePawnMove = (from, to, piece) => {
+    const dir = piece === "P" ? -1 : 1;
+    const startRow = piece === "P" ? 6 : 1;
+    if (to.row === from.row + dir && to.col === from.col && board[to.row][to.col] === "") return true;
+    if (from.row === startRow && to.row === from.row + 2 * dir && to.col === from.col && board[to.row][to.col] === "") return true;
+    if (to.row === from.row + dir && Math.abs(to.col - from.col) === 1 && board[to.row][to.col] !== "") return true;
+    return false;
+  };
+
+  const validateMove = (from, to, piece) => {
+    const dx = Math.abs(to.col - from.col);
+    const dy = Math.abs(to.row - from.row);
     switch (piece.toLowerCase()) {
-      case "p": return validatePawnMove(from, to, board, piece);
-      case "n": return validateKnightMove(from, to);
-      case "b": return validateBishopMove(from, to, board);
-      case "r": return validateRookMove(from, to, board);
-      case "q": return validateQueenMove(from, to, board);
-      case "k": return validateKingMove(from, to);
+      case "p": return validatePawnMove(from, to, piece);
+      case "n": return (dx === 2 && dy === 1) || (dx === 1 && dy === 2);
+      case "b": return dx === dy && isPathClear(from, to);
+      case "r": return (dx === 0 || dy === 0) && isPathClear(from, to);
+      case "q": return (dx === dy || dx === 0 || dy === 0) && isPathClear(from, to);
+      case "k": return dx <= 1 && dy <= 1;
       default: return false;
     }
   };
 
-  
+  const applyMove = (from, to, isOpponent = false, piece = null, fullBoard = null, logOverride = null, turnOverride = null) => {
+    const newBoard = fullBoard || board.map(row => [...row]);
+    const movingPiece = piece || newBoard[from.row][from.col];
+    newBoard[to.row][to.col] = movingPiece;
+    newBoard[from.row][from.col] = "";
+
+    const moveNotation = `${"abcdefgh"[from.col]}${8 - from.row} → ${"abcdefgh"[to.col]}${8 - to.row}`;
+    const updatedLog = logOverride || [...moveLog, isOpponent ? `Opponent: ${moveNotation}` : moveNotation];
+    const updatedTurn = turnOverride || (turn === "white" ? "black" : "white");
+
+    setBoard(newBoard);
+    setMoveLog(updatedLog);
+    setTurn(updatedTurn);
+    saveGame(roomId, newBoard, updatedTurn, updatedLog);
+  };
+
   const handleClick = (row, col) => {
+    if (role === "watcher") return;
+    if (turn !== color) return;
     const piece = board[row][col];
-  
     if (!from) {
-      if ((turn === "white" && piece.match(/[PRNBQK]/)) || 
-          (turn === "black" && piece.match(/[prnbqk]/))) {
+      const isMyTurn = (turn === color);
+      const isMyPiece = (color === "white" ? piece.match(/[PRNBQK]/) : piece.match(/[prnbqk]/));
+      if (isMyTurn && isMyPiece) {
         setFrom({ row, col });
       }
     } else {
       const to = { row, col };
-  
-      if (isValidMove(from, to, board)) {
-        let newBoard = board.map((r) => [...r]);
-        newBoard[row][col] = board[from.row][from.col];
+      const movingPiece = board[from.row][from.col];
+      if (validateMove(from, to, movingPiece)) {
+        const newBoard = board.map(row => [...row]);
+        newBoard[to.row][to.col] = movingPiece;
         newBoard[from.row][from.col] = "";
-        setBoard(newBoard);
-        console.log("Board after move:");
-        console.table(newBoard);
 
-        const moveNotation = `${"abcdefgh"[from.col]}${8 - from.row} → ${"abcdefgh"[col]}${8 - row}`;
-        setMoveLog([...moveLog, moveNotation]);
-        console.log("Move History:", [...moveLog, moveNotation]);
-        setTurn(turn === "white" ? "black" : "white");
+        const moveNotation = `${"abcdefgh"[from.col]}${8 - from.row} → ${"abcdefgh"[to.col]}${8 - to.row}`;
+        const updatedLog = [...moveLog, moveNotation];
+
+        applyMove(from, to);
+        socket.emit("move", {
+          roomId,
+          from,
+          to,
+          piece: movingPiece,
+          fullBoard: newBoard,
+          log: updatedLog,
+          turn: turn === "white" ? "black" : "white",
+          senderId: socket.id
+        });
       }
       setFrom(null);
-    }
-  };
-  
-
-  const handleTakeback = () => {
-    if (moveLog.length > 0) {
-      setMoveLog(moveLog.slice(0, -1)); 
-    }
-  };
-
-  const handleResign = () => {
-    setResigned(true);
-    setMoveText("Move 4");
-  };
-
-  const handleWorstMove = () => {
-    if (!resigned) {
-      alert("Game in progress");
     }
   };
 
@@ -173,9 +204,6 @@ const ChessBoard = () => {
           {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => {
               const isDark = (rowIndex + colIndex) % 2 === 1;
-              const file = "abcdefgh"[colIndex]; 
-              const rank = 8 - rowIndex; 
-
               return (
                 <div
                   key={`${rowIndex}-${colIndex}`}
@@ -183,11 +211,8 @@ const ChessBoard = () => {
                   onClick={() => handleClick(rowIndex, colIndex)}
                   style={{ backgroundColor: isDark ? "#769656" : "#eeeed2" }}
                 >
- 
-                  {colIndex === 0 && <span className="rank">{rank}</span>}
-                  {rowIndex === 7 && <span className="file">{file}</span>}
-
-
+                  {colIndex === 0 && <span className="rank">{8 - rowIndex}</span>}
+                  {rowIndex === 7 && <span className="file">{"abcdefgh"[colIndex]}</span>}
                   {cell && <img src={pieceMap[cell]} alt={cell} className="piece" />}
                 </div>
               );
@@ -195,7 +220,6 @@ const ChessBoard = () => {
           )}
         </div>
       </div>
-
       <div className="sidebar">
         <h3>Move Log</h3>
         <div className="move-log">
@@ -203,10 +227,13 @@ const ChessBoard = () => {
             <p key={index}>{index + 1}. {move}</p>
           ))}
         </div>
-        <Button color="danger" onClick={handleResign}>Resign</Button>
-        <Button color="warning" onClick={handleWorstMove} disabled={!resigned}>
-          Show the worst move
-        </Button>
+        <Button color="danger" disabled={resigned} onClick={() => {
+    socket.emit("resign", { roomId, color });
+    setResigned(true);
+    setMoveText(`${color === "white" ? "White" : "Black"} resigned. ${color === "white" ? "Black" : "White"} wins!`);
+    setMoveLog((prev) => [...prev, `${color} resigned`]);
+  }}>Resign</Button>
+        <Button color="warning" disabled={!resigned}>Show the worst move</Button>
         <Input type="text" value={moveText} readOnly />
       </div>
     </div>
