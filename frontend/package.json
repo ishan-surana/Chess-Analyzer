@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
     "framer": "^2.4.1",
+    "mongoose": "^8.13.2",
     "motion": "^12.5.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
     "react-router-dom": "^7.4.0",
     "reactstrap": "^9.2.3"
   },

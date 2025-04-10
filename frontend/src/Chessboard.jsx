@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Alert, Input } from "reactstrap";
-import "./Chessboardd.css"; 
+import "./Chessboard.css"; 
 
 import w_pawn from "./assets/w_pawn.png";
 import w_rook from "./assets/w_rook.png";
@@ -33,7 +33,7 @@ const initialBoard = [
   ["R", "N", "B", "Q", "K", "B", "N", "R"],
 ];
 
-const ChessBoardd = () => {
+const ChessBoard = () => {
   const [board, setBoard] = useState(initialBoard);
   const [from, setFrom] = useState(null);
   const [turn, setTurn] = useState("white");
@@ -213,4 +213,4 @@ const ChessBoardd = () => {
   );
 };
 
-export default ChessBoardd;
+export default ChessBoard;
