@@ -10,7 +10,6 @@ const Results = () => {
   useEffect(() => {
     const fetchMatches = async () => {
       if (!userId) return;
-
       try {
         const res = await fetch(`http://localhost:5000/api/matches/${userId}`);
         const data = await res.json();
@@ -21,7 +20,6 @@ const Results = () => {
         setLoading(false);
       }
     };
-
     fetchMatches();
   }, [userId]);
 
