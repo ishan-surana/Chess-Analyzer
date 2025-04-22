@@ -7,6 +7,6 @@
     "socket.io": "^4.8.1"
   },
   "scripts": {
-    "seed": "node seed.js"
+    "start": "node seed.js && node server.js"
   }
 }
